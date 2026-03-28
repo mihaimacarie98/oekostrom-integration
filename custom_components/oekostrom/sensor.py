@@ -11,7 +11,6 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
-    SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -212,14 +211,17 @@ class OekostromSensor(CoordinatorEntity[OekostromCoordinator], SensorEntity):
 
     @property
     def _acc_data(self) -> dict[str, Any]:
+        """Return account data from coordinator."""
         return self.coordinator.data.get("accounts", {}).get(self._acc_id, {})
 
     @property
     def native_value(self) -> Any:
+        """Return the sensor value."""
         return self.entity_description.value_fn(self._acc_data)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra state attributes."""
         if self.entity_description.attr_fn:
             return self.entity_description.attr_fn(self._acc_data)
         return None

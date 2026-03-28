@@ -33,7 +33,7 @@ class OekostromCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch data from the API."""
         try:
             return await self._fetch_all()
-        except OekostromAuthError as err:
+        except OekostromAuthError:
             _LOGGER.debug("Session expired, re-authenticating")
             try:
                 await self.api.authenticate()

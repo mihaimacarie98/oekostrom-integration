@@ -59,7 +59,7 @@ class OekostromConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except (OekostromApiError, aiohttp.ClientError):
                 errors["base"] = "cannot_connect"
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 _LOGGER.exception("Unexpected error during config flow")
                 errors["base"] = "unknown"
             else:
@@ -99,7 +99,7 @@ class OekostromConfigFlow(ConfigFlow, domain=DOMAIN):
                 errors["base"] = "invalid_auth"
             except (OekostromApiError, aiohttp.ClientError):
                 errors["base"] = "cannot_connect"
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 _LOGGER.exception("Unexpected error during reauth")
                 errors["base"] = "unknown"
             else:
