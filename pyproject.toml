@@ -1,0 +1,25 @@
+[project]
+name = "hacs-oekostrom"
+version = "1.0.0"
+description = "Home Assistant integration for oekostrom AG"
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+dev = [
+    "homeassistant",
+    "pylint",
+]
+
+[tool.pylint.main]
+load-plugins = []
+py-version = "3.12"
+
+[tool.pylint."messages control"]
+disable = [
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-positional-arguments",
+]
+
+[tool.pylint.format]
+max-line-length = 120
