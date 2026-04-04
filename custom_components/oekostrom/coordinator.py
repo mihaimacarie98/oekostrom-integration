@@ -68,6 +68,11 @@ class OekostromCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "invoices": [],
                 "invoice_summary": {},
                 "price_infos": {},
+                "dashboard": {},
+                "smart_meter": {},
+                "bonus_points": {},
+                "load_profile_widget": {},
+                "notifications": {},
             }
 
             try:
@@ -94,6 +99,31 @@ class OekostromCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 acc_data["price_infos"] = await self.api.get_price_infos(acc_id)
             except OekostromApiError as err:
                 _LOGGER.debug("Failed to get price infos for %s: %s", acc_id, err)
+
+            try:
+                acc_data["dashboard"] = await self.api.get_dashboard(acc_id)
+            except OekostromApiError as err:
+                _LOGGER.debug("Failed to get dashboard for %s: %s", acc_id, err)
+
+            try:
+                acc_data["smart_meter"] = await self.api.get_smart_meter(acc_id)
+            except OekostromApiError as err:
+                _LOGGER.debug("Failed to get smart meter for %s: %s", acc_id, err)
+
+            try:
+                acc_data["bonus_points"] = await self.api.get_bonus_point_data(acc_id)
+            except OekostromApiError as err:
+                _LOGGER.debug("Failed to get bonus points for %s: %s", acc_id, err)
+
+            try:
+                acc_data["load_profile_widget"] = await self.api.get_load_profile_widget(acc_id)
+            except OekostromApiError as err:
+                _LOGGER.debug("Failed to get load profile for %s: %s", acc_id, err)
+
+            try:
+                acc_data["notifications"] = await self.api.get_new_notifications(acc_id)
+            except OekostromApiError as err:
+                _LOGGER.debug("Failed to get notifications for %s: %s", acc_id, err)
 
             data["accounts"][acc_id] = acc_data
 

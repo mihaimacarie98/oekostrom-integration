@@ -59,6 +59,30 @@
       },
       "supply_status": {
         "name": "Supply status"
+      },
+      "smart_meter_status": {
+        "name": "Smart meter status"
+      },
+      "bonus_points": {
+        "name": "Bonus points"
+      },
+      "referral_bonus": {
+        "name": "Referral bonus"
+      },
+      "contract_start": {
+        "name": "Contract start"
+      },
+      "price_guarantee": {
+        "name": "Price guarantee until"
+      },
+      "binding_period": {
+        "name": "Binding period until"
+      },
+      "grid_operator": {
+        "name": "Grid operator"
+      },
+      "invoice_count": {
+        "name": "Invoice count"
       }
     }
   }

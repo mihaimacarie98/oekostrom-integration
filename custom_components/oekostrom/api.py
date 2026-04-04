@@ -11,7 +11,7 @@ from typing import Any
 import aiohttp
 from yarl import URL
 
-from .const import API_BASE, API_PROXY, API_ENV, PORTAL_NAME, USER_AGENT
+from .const import API_BASE, API_PORTAL_PAGE, API_PROXY, API_ENV, PORTAL_NAME, USER_AGENT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,6 +20,9 @@ REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 # Only alphanumeric endpoint names are valid — prevents injection via
 # user-controlled data reaching the proxy's endpoint parameter.
 _VALID_ENDPOINT = re.compile(r"^[A-Za-z]{1,50}$")
+
+# Pattern to extract the proxy_login_token from the portal HTML.
+_LOGIN_TOKEN_RE = re.compile(r'proxy_login_token\s*=\s*"([^"]+)"')
 
 
 class OekostromApiError(Exception):
@@ -41,7 +44,7 @@ class OekostromApi:
         self._username = username
         self._password_hash = hashlib.md5(password.encode()).hexdigest()
         self._session: aiohttp.ClientSession | None = None
-        self._php_session_id: str | None = None
+        self._login_token: str | None = None
         self._session_guid: str | None = None
         self._user_data: dict[str, Any] | None = None
 
@@ -64,25 +67,33 @@ class OekostromApi:
         """Return cached user data from last authentication."""
         return self._user_data
 
-    async def _init_php_session(self) -> None:
-        """Get a PHP session from the portal landing page."""
+    async def _fetch_login_token(self) -> None:
+        """Fetch the proxy_login_token from the portal login page."""
         session = self._ensure_session()
         try:
-            async with session.get(API_BASE + "/", allow_redirects=True) as resp:
+            async with session.get(
+                API_PORTAL_PAGE, allow_redirects=True
+            ) as resp:
                 if resp.status != 200:
                     raise OekostromApiError(
                         f"Portal returned HTTP {resp.status}"
                     )
-                phpsessid = None
-                for cookie in session.cookie_jar:
-                    if cookie.key == "PHPSESSID":
-                        phpsessid = cookie.value
-                        break
-                if not phpsessid:
-                    raise OekostromApiError("Failed to obtain PHP session")
-                self._php_session_id = phpsessid
+                html = await resp.text()
+                match = _LOGIN_TOKEN_RE.search(html)
+                if not match:
+                    raise OekostromApiError(
+                        "Failed to obtain login token from portal page"
+                    )
+                self._login_token = match.group(1)
         except aiohttp.ClientError as err:
             raise OekostromApiError(f"Connection error: {err}") from err
+
+    def _build_body(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Build the request body with SessionGUID and PortalName."""
+        body: dict[str, Any] = {"SessionGUID": self._session_guid}
+        body["PortalName"] = PORTAL_NAME
+        body.update(data)
+        return body
 
     async def _call_endpoint(
         self,
@@ -94,7 +105,7 @@ class OekostromApi:
         if not _VALID_ENDPOINT.match(endpoint):
             raise OekostromApiError(f"Invalid endpoint name: {endpoint!r}")
 
-        token = self._php_session_id if use_login_token else self._session_guid
+        token = self._login_token if use_login_token else self._session_guid
         if not token:
             raise OekostromApiError(f"No token available for {endpoint}")
 
@@ -109,7 +120,7 @@ class OekostromApi:
         headers = {
             "Content-Type": "application/json",
             "Origin": API_BASE,
-            "Referer": API_BASE + "/",
+            "Referer": API_PORTAL_PAGE + "/",
         }
 
         session = self._ensure_session()
@@ -152,7 +163,7 @@ class OekostromApi:
 
     async def authenticate(self) -> dict[str, Any]:
         """Authenticate with the portal and return user data."""
-        await self._init_php_session()
+        await self._fetch_login_token()
 
         result = await self._call_endpoint(
             "UserLogin",
@@ -193,11 +204,101 @@ class OekostromApi:
         """Get product/tariff information for an account."""
         result = await self._call_endpoint(
             "GetProducts",
-            {"SessionGUID": self._session_guid, "AccId": acc_id},
+            self._build_body({"AccId": acc_id}),
         )
         if isinstance(result, list):
             return result
         return []
+
+    async def get_installments(self, acc_id: int) -> dict[str, Any]:
+        """Get installment/payment plan data for an account."""
+        result = await self._call_endpoint(
+            "GetInstallments",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    async def get_invoices(self, acc_id: int) -> list[dict[str, Any]]:
+        """Get invoice list for an account."""
+        result = await self._call_endpoint(
+            "GetInvoices",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, list):
+            return result
+        return []
+
+    async def get_invoice_summary(self, acc_id: int) -> dict[str, Any]:
+        """Get invoice summary for an account."""
+        result = await self._call_endpoint(
+            "GetInvoiceSummary",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    async def get_price_infos(self, acc_id: int) -> dict[str, Any]:
+        """Get price information for an account."""
+        result = await self._call_endpoint(
+            "GetPriceInfos",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    async def get_dashboard(self, acc_id: int) -> dict[str, Any]:
+        """Get dashboard data for an account."""
+        result = await self._call_endpoint(
+            "GetDashboard",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    async def get_smart_meter(self, acc_id: int) -> dict[str, Any]:
+        """Get smart meter status for an account."""
+        result = await self._call_endpoint(
+            "GetSmartMeter",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    async def get_bonus_point_data(self, acc_id: int) -> dict[str, Any]:
+        """Get bonus point data for an account."""
+        result = await self._call_endpoint(
+            "GetBonusPointData",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    async def get_load_profile_widget(self, acc_id: int) -> dict[str, Any]:
+        """Get load profile widget (consumption overview)."""
+        result = await self._call_endpoint(
+            "GetLoadProfileWidget",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    async def get_new_notifications(self, acc_id: int) -> dict[str, Any]:
+        """Get new notifications for an account."""
+        result = await self._call_endpoint(
+            "GetNewNotifications",
+            self._build_body({"AccId": acc_id}),
+        )
+        if isinstance(result, dict):
+            return result
+        return {}
 
     async def get_invoices(self, acc_id: int) -> list[dict[str, Any]]:
         """Get invoices for an account."""

@@ -7,6 +7,7 @@ CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 
 API_BASE = "https://mein.oekostrom.at"
+API_PORTAL_PAGE = f"{API_BASE}/a-p"
 API_PROXY = f"{API_BASE}/wp-content/plugins/oekostrom-kundenportal/includes/api-proxy.php"
 API_ENV = "sdk-prod"
 PORTAL_NAME = "OEKOSTROM"

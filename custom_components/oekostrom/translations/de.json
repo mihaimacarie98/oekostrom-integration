@@ -59,6 +59,30 @@
       },
       "supply_status": {
         "name": "Lieferstatus"
+      },
+      "smart_meter_status": {
+        "name": "Smart Meter Status"
+      },
+      "bonus_points": {
+        "name": "Bonuspunkte"
+      },
+      "referral_bonus": {
+        "name": "Freundschaftsbonus"
+      },
+      "contract_start": {
+        "name": "Vertragsbeginn"
+      },
+      "price_guarantee": {
+        "name": "Preisgarantie bis"
+      },
+      "binding_period": {
+        "name": "Bindungsfrist bis"
+      },
+      "grid_operator": {
+        "name": "Netzbetreiber"
+      },
+      "invoice_count": {
+        "name": "Anzahl Rechnungen"
       }
     }
   }

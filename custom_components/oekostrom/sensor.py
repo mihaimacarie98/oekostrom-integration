@@ -44,6 +44,15 @@ def _get_installment_field(acc_data: dict, field: str) -> Any:
     return inst.get(field)
 
 
+def _get_dashboard_field(acc_data: dict, key: str, field: str) -> Any:
+    """Get a field from a dashboard section."""
+    dashboard = acc_data.get("dashboard", {})
+    section = dashboard.get(key, {})
+    if isinstance(section, dict):
+        return section.get(field)
+    return None
+
+
 def _parse_date(value: str | None) -> datetime.date | None:
     """Parse DD.MM.YYYY to a date object for HA date sensor."""
     if not value:
@@ -72,6 +81,9 @@ ACCOUNT_SENSORS: tuple[OekostromSensorDescription, ...] = (
             "price_guarantee": _get_product_field(d, "PriceGuaranteedate"),
             "discount_info": _get_product_field(d, "DiscountInfo"),
             "conditions": _get_product_field(d, "Conditions"),
+            "load_profile": _get_product_field(d, "LprSDesc"),
+            "profile_type": _get_product_field(d, "MprProfileTypeDesc"),
+            "energy_voucher": _get_product_field(d, "EnergyVoucher"),
         },
     ),
     OekostromSensorDescription(
@@ -139,6 +151,11 @@ ACCOUNT_SENSORS: tuple[OekostromSensorDescription, ...] = (
         device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=2,
         value_fn=lambda d: _get_installment_field(d, "ScoAmount"),
+        attr_fn=lambda d: {
+            "monthly": _get_installment_field(d, "ScoMonthly"),
+            "valid_to": _get_installment_field(d, "ScoValidTo"),
+            "updateable": _get_installment_field(d, "ScoUpdateable"),
+        },
     ),
     OekostromSensorDescription(
         key="metering_code",
@@ -151,6 +168,71 @@ ACCOUNT_SENSORS: tuple[OekostromSensorDescription, ...] = (
         translation_key="supply_status",
         icon="mdi:transmission-tower",
         value_fn=lambda d: _get_product_field(d, "Status"),
+    ),
+    OekostromSensorDescription(
+        key="smart_meter_status",
+        translation_key="smart_meter_status",
+        icon="mdi:meter-electric-outline",
+        value_fn=lambda d: d.get("smart_meter", {}).get("Status"),
+    ),
+    OekostromSensorDescription(
+        key="bonus_points",
+        translation_key="bonus_points",
+        icon="mdi:star-circle",
+        value_fn=lambda d: d.get("bonus_points", {}).get("ShowBlockBonusPoints"),
+        attr_fn=lambda d: {
+            "status": d.get("bonus_points", {}).get("Status"),
+            "items": len(d.get("bonus_points", {}).get("CusInfoList", [])),
+        },
+    ),
+    OekostromSensorDescription(
+        key="referral_bonus",
+        translation_key="referral_bonus",
+        icon="mdi:account-group",
+        value_fn=lambda d: _get_dashboard_field(d, "FWF", "Info"),
+        attr_fn=lambda d: {
+            "headline": _get_dashboard_field(d, "FWF", "Headline"),
+            "description": _get_dashboard_field(d, "FWF", "Description"),
+        },
+    ),
+    OekostromSensorDescription(
+        key="contract_start",
+        translation_key="contract_start",
+        icon="mdi:calendar-start",
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda d: _parse_date(
+            _get_product_field(d, "SupplyStart")
+        ),
+    ),
+    OekostromSensorDescription(
+        key="price_guarantee",
+        translation_key="price_guarantee",
+        icon="mdi:shield-check",
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda d: _parse_date(
+            _get_product_field(d, "PriceGuaranteedate")
+        ),
+    ),
+    OekostromSensorDescription(
+        key="binding_period",
+        translation_key="binding_period",
+        icon="mdi:calendar-lock",
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda d: _parse_date(
+            _get_product_field(d, "BindingPeriod")
+        ),
+    ),
+    OekostromSensorDescription(
+        key="grid_operator",
+        translation_key="grid_operator",
+        icon="mdi:transmission-tower",
+        value_fn=lambda d: _get_product_field(d, "GriDesc"),
+    ),
+    OekostromSensorDescription(
+        key="invoice_count",
+        translation_key="invoice_count",
+        icon="mdi:receipt-text",
+        value_fn=lambda d: len(d.get("invoices", [])),
     ),
 )
 
