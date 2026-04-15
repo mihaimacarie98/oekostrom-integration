@@ -25,6 +25,19 @@ _VALID_ENDPOINT = re.compile(r"^[A-Za-z]{1,50}$")
 _LOGIN_TOKEN_RE = re.compile(r'proxy_login_token\s*=\s*"([^"]+)"')
 
 
+def _is_safe_token(token: Any) -> bool:
+    """Validate that a token is a non-empty printable string.
+
+    Avoids forwarding unexpected types or control characters into request
+    query params and cookies if upstream responses are malformed.
+    """
+    return (
+        isinstance(token, str)
+        and 1 <= len(token) <= 512
+        and all(ch.isprintable() and not ch.isspace() for ch in token)
+    )
+
+
 class OekostromApiError(Exception):
     """Base exception for API errors."""
 
@@ -106,7 +119,7 @@ class OekostromApi:
             raise OekostromApiError(f"Invalid endpoint name: {endpoint!r}")
 
         token = self._login_token if use_login_token else self._session_guid
-        if not token:
+        if not _is_safe_token(token):
             raise OekostromApiError(f"No token available for {endpoint}")
 
         params = {
@@ -140,7 +153,7 @@ class OekostromApi:
 
                 if text.startswith("invalid proxy call"):
                     raise OekostromApiError(
-                        f"Proxy rejected call to {endpoint}: {text}"
+                        f"Proxy rejected call to {endpoint}"
                     )
 
                 try:
@@ -182,7 +195,11 @@ class OekostromApi:
         if status not in ("OK", "EMAILOK"):
             raise OekostromAuthError(f"Login failed with status: {status}")
 
-        self._session_guid = result["SessionGUID"]
+        session_guid = result.get("SessionGUID")
+        if not _is_safe_token(session_guid):
+            raise OekostromAuthError("Login returned invalid session token")
+
+        self._session_guid = session_guid
         self._user_data = result
 
         # Set the oekp_l cookie so subsequent calls work
@@ -193,8 +210,7 @@ class OekostromApi:
         )
 
         _LOGGER.debug(
-            "Authenticated as %s with %d account(s)",
-            self._username,
+            "Authenticated successfully with %d account(s)",
             len(result.get("AccountIds", [])),
         )
 

@@ -60,6 +60,10 @@ class OekostromCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         }
 
         for account in accounts:
+            if not isinstance(account, dict) or "AccId" not in account:
+                _LOGGER.debug("Skipping malformed account payload: %s", account)
+                continue
+
             acc_id = account["AccId"]
             acc_data: dict[str, Any] = {
                 "info": account,
