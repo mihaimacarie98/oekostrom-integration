@@ -140,7 +140,7 @@ class OekostromApi:
 
                 if text.startswith("invalid proxy call"):
                     raise OekostromApiError(
-                        f"Proxy rejected call to {endpoint}: {text}"
+                        f"Proxy rejected call to {endpoint}"
                     )
 
                 try:
@@ -193,8 +193,7 @@ class OekostromApi:
         )
 
         _LOGGER.debug(
-            "Authenticated as %s with %d account(s)",
-            self._username,
+            "Authenticated successfully with %d account(s)",
             len(result.get("AccountIds", [])),
         )
 
