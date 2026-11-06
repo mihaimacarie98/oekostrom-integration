@@ -122,13 +122,14 @@ class OekostromApi:
             "Origin": API_BASE,
             "Referer": API_PORTAL_PAGE + "/",
         }
+        request_data = {"PortalName": PORTAL_NAME, **data}
 
         session = self._ensure_session()
         try:
             async with session.post(
                 API_PROXY,
                 params=params,
-                json=data,
+                json=request_data,
                 headers=headers,
             ) as resp:
                 if resp.status != 200:
@@ -333,9 +334,10 @@ class OekostromApi:
             "GetLoadProfile",
             {
                 "SessionGUID": self._session_guid,
-                "AccId": acc_id,
+                "AccID": str(acc_id),
                 "BDate": b_date,
                 "EDate": e_date,
+                "Pattern": "15",
             },
         )
 
@@ -358,7 +360,7 @@ class OekostromApi:
         """Get settlement/billing periods."""
         result = await self._call_endpoint(
             "GetSettlementFrequencies",
-            {"SessionGUID": self._session_guid, "AccId": acc_id},
+            {"SessionGUID": self._session_guid, "AccId": str(acc_id)},
         )
         if isinstance(result, list):
             return result

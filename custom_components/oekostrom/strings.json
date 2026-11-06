@@ -83,6 +83,17 @@
       },
       "invoice_count": {
         "name": "Invoice count"
+      },
+      "power_consumption": {
+        "name": "Power consumption (15min)",
+        "state_attributes": {
+          "status": {
+            "name": "Load profile status"
+          },
+          "statistics_id": {
+            "name": "Statistics ID"
+          }
+        }
       }
     }
   }

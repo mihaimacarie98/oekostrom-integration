@@ -11,6 +11,7 @@ Fetches data from the [mein.oekostrom.at](https://mein.oekostrom.at/) customer p
 - **Tariff information** — current product name, energy price, base price (gross & net)
 - **Account status** — supply state, smart meter flag, address, metering code
 - **Billing** — installment amount, next payment date
+- **Energy consumption** — 15-minute readings aggregated into Home Assistant hourly energy statistics
 - **Multi-account** — supports multiple delivery points under one login
 - **Auto-reauth** — re-authenticates automatically when the session expires
 
@@ -51,6 +52,9 @@ Per delivery account (Strom/Gas):
 | Metering code | Austrian metering point ID (Zählpunkt) |
 | Installment amount | Monthly payment in EUR |
 | Next installment date | Next payment due date |
+| Power consumption (15min) | Latest 15-minute kWh value; long-term energy statistics are hourly totals |
+
+See [15-minute energy consumption](./POWER_CONSUMPTION.md) for Energy dashboard setup.
 
 ## Data refresh
 
