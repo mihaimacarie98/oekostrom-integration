@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN
 from .coordinator import OekostromCoordinator
@@ -245,10 +246,12 @@ async def async_setup_entry(
     """Set up oekostrom sensors from a config entry."""
     coordinator: OekostromCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities: list[OekostromSensor] = []
+    entities: list[OekostromSensor | OekostromPowerConsumptionSensor] = []
 
     for acc_id in coordinator.data.get("accounts", {}):
         acc_info = coordinator.data["accounts"][acc_id]["info"]
+
+        # Add regular sensors
         for description in ACCOUNT_SENSORS:
             entities.append(
                 OekostromSensor(
@@ -259,6 +262,16 @@ async def async_setup_entry(
                     entry_id=entry.entry_id,
                 )
             )
+
+        # Add power consumption sensor
+        entities.append(
+            OekostromPowerConsumptionSensor(
+                coordinator=coordinator,
+                acc_id=acc_id,
+                acc_info=acc_info,
+                entry_id=entry.entry_id,
+            )
+        )
 
     async_add_entities(entities)
 
@@ -307,3 +320,55 @@ class OekostromSensor(CoordinatorEntity[OekostromCoordinator], SensorEntity):
         if self.entity_description.attr_fn:
             return self.entity_description.attr_fn(self._acc_data)
         return None
+
+
+class OekostromPowerConsumptionSensor(CoordinatorEntity[OekostromCoordinator], SensorEntity):
+    """Power consumption sensor using Home Assistant statistics."""
+
+    _attr_has_entity_name = True
+    _attr_device_class = SensorDeviceClass.ENERGY
+    _attr_native_unit_of_measurement = "kWh"
+    _attr_suggested_display_precision = 3
+    _attr_suggested_unit_of_measurement = "kWh"
+    _attr_icon = "mdi:lightning-bolt"
+
+    def __init__(
+        self,
+        coordinator: OekostromCoordinator,
+        acc_id: int,
+        acc_info: dict[str, Any],
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self._acc_id = acc_id
+        acc_no = acc_info.get("AccNo", acc_id)
+        acc_type = acc_info.get("AccType", "Energy")
+
+        self._attr_unique_id = f"{entry_id}_{acc_id}_power_consumption"
+        self._attr_translation_key = "power_consumption"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, str(acc_id))},
+            name=f"oekostrom {acc_type} {acc_no}",
+            manufacturer="oekostrom AG",
+            model=acc_type,
+        )
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the latest 15-minute consumption value."""
+        load_profile = self.coordinator.data.get("accounts", {}).get(
+            self._acc_id, {}
+        ).get("load_profile", {})
+        return load_profile.get("last_consumption_kwh")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return attributes with load profile info."""
+        load_profile = self.coordinator.data.get("accounts", {}).get(
+            self._acc_id, {}
+        ).get("load_profile", {})
+
+        return {
+            "status": load_profile.get("status", "unknown"),
+            "statistics_id": f"oekostrom:consumption_15min_{self._acc_id}",
+        }

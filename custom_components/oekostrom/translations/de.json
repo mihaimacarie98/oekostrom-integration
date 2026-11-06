@@ -83,6 +83,17 @@
       },
       "invoice_count": {
         "name": "Anzahl Rechnungen"
+      },
+      "power_consumption": {
+        "name": "Stromverbrauch (15min)",
+        "state_attributes": {
+          "status": {
+            "name": "Status Lastprofil"
+          },
+          "statistics_id": {
+            "name": "Statistik-ID"
+          }
+        }
       }
     }
   }
